@@ -194,6 +194,7 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                 seeders = '0'
                 leechers = '0'
                 snatched = '0'
+                alive_time = 'N/A'
 
                 # Try to find cells with numeric values for seeders/leechers
                 for i, cell in enumerate(cells):
@@ -201,6 +202,9 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                     # Look for size pattern (GB, MB, TB)
                     if re.match(r'^\d+(\.\d+)?\s*[GMKT]B$', text, re.I):
                         size = text
+                    # Look for alive time pattern (天/时/分 - days/hours/minutes)
+                    elif re.match(r'^\d+\s*[天时分秒](\s*\d+\s*[天时分秒])*$', text):
+                        alive_time = text
                     # Look for seeders (usually a number, sometimes colored)
                     elif cell.find('span', class_=re.compile(r'seed|up', re.I)) or re.match(r'^\d+$', text):
                         if seeders == '0' and text.isdigit():
@@ -211,13 +215,17 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
 
                 # Alternative: try fixed positions if we have enough cells
                 if len(cells) >= cell_index + 5:
-                    # Common layout: [checkbox][cat][title][comments][size][seeders][leechers][snatched][uploader]
-                    size_candidates = [cells[cell_index+2], cells[cell_index+3]] if cell_index+3 < len(cells) else [cells[cell_index+2]]
-                    for cand in size_candidates:
-                        text = cand.get_text(strip=True)
-                        if re.match(r'^\d+(\.\d+)?\s*[GMKT]B$', text, re.I):
-                            size = text
-                            break
+                    # Common layout: [checkbox][cat][title][comments][alive_time][size][seeders][leechers][snatched][uploader]
+                    # Try to extract from fixed positions
+                    for offset in [2, 3, 4]:
+                        if cell_index + offset < len(cells):
+                            text = cells[cell_index + offset].get_text(strip=True)
+                            # Check for size
+                            if size == 'N/A' and re.match(r'^\d+(\.\d+)?\s*[GMKT]B$', text, re.I):
+                                size = text
+                            # Check for alive time (天=day, 时=hour, 分=minute, 秒=second)
+                            if alive_time == 'N/A' and re.match(r'^(\d+[天时分秒\s]*)+$', text):
+                                alive_time = text
 
                 # Extract tags (Free, 国语, 中字, 禁转, etc.)
                 tags = []
@@ -240,6 +248,9 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                 # Filter out non-torrent results (like userdetails pages)
                 if not details_url or 'details.php' not in details_url or 'id=' not in details_url:
                     continue
+                # Explicitly exclude userdetails pages
+                if 'userdetails.php' in details_url:
+                    continue
                     
                 # Filter tags - only keep meaningful ones
                 meaningful_tags = []
@@ -260,6 +271,7 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                     'id': torrent_id,
                     'title': main_title,
                     'subtitle': subtitle,
+                    'alive_time': alive_time,
                     'size': size,
                     'seeders': seeders,
                     'leechers': leechers,

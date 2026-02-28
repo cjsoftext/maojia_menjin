@@ -16,11 +16,6 @@ Search and download torrents from PTerClub (PT之友俱乐部) private tracker.
 
 Cookies are stored in `~/.openclaw/workspace/pterclub_cookies.json`. If cookies are missing or expired, ask the user to provide their PTerClub cookies.
 
-To get cookies:
-1. Login to https://pterclub.net in browser
-2. Open Developer Tools → Application/Storage → Cookies
-3. Copy the cookie string (including c_secure_login, c_secure_pass, c_secure_uid, PHPSESSID)
-
 ## Workflow
 
 ### 1. Check Authentication
@@ -50,6 +45,7 @@ The script returns JSON array of results with fields:
 - `title`: Main torrent title
 - `subtitle`: Subtitle/description (e.g., "XIUREN秀人网 No.10751-10800 模特写真")
 - `size`: File size
+- `alive_time`: Torrent age/survival time (e.g., "3天 5时", "2时 30分")
 - `seeders`: Number of seeders
 - `leechers`: Number of leechers
 - `snatched`: Download count
@@ -66,11 +62,11 @@ Use this format:
 
 **1.** Xing dai lu lu - Photo Set Collection-LikeArt
     └─ 副标题: Xing dai lu lu 模特写真合集
-    └─ 大小: 5.33 GB | 标签: Free, 禁转
+    └─ 大小: 5.33 GB | 存活: 3天 5时 | 标签: Free, 禁转
 
 **2.** Xiao he tian jiu - Photo Set Collection-LikeArt
     └─ 副标题: Xiao he tian jiu 精选图集
-    └─ 大小: 10.31 GB | 标签: Free, 禁转
+    └─ 大小: 10.31 GB | 存活: 2时 30分 | 标签: Free, 禁转
 ```
 
 **Formatting rules:**
