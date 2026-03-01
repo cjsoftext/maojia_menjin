@@ -86,36 +86,55 @@ User can respond in multiple ways:
 - "全部下载" → Download all shown torrents
 - "再看看" or "取消" → Cancel operation
 
-Parse the response and extract numbers.
+**Preset handling (integration with qbittorrent skill):**
+
+If the user's selection message includes a preset reference (e.g., `normal预设`, `使用 yellow 预设`), the agent should interpret this as a request to add the torrent to qBittorrent with that preset. The agent must:
+
+1. Extract the torrent numbers and the preset name (e.g., `normal`, `yellow`).
+2. For each selected torrent, call `pterclub.py download <torrent_id>` (without `--preset`).
+3. After downloading the torrent file, invoke the qbittorrent skill's `add_torrent_file` tool, passing:
+   - `file_path`: downloaded torrent path
+   - `preset`: the preset name (e.g., `normal`, `yellow`)
+4. If qBittorrent add succeeds, delete the local torrent file.
+5. Return a combined success message from both steps.
+
+**Do not modify pterclub.py to accept `--preset`.** The preset logic belongs to the agent orchestrating both skills. The pterclub skill only downloads torrents; the agent handles qBittorrent integration.
 
 ### 5. Download Torrents
 
-For each selected torrent:
+For each selected torrent without a preset:
 ```bash
 python3 ~/.openclaw/workspace/skills/pterclub/scripts/pterclub.py download <torrent_id>
 ```
 
 The torrent file is saved to `~/.openclaw/workspace/torrents/`.
 
-### 6. Return Results
+### 6. qBittorrent Integration (Agent-Orchestrated)
+
+If the user specified a preset in their selection, the agent must **after downloading** invoke the qbittorrent skill's `add_torrent_file` tool, passing the `preset` name as a parameter. The qbittorrent skill knows how to map that preset to its own configuration (e.g., save_path and category).
+
+On success, delete the local torrent file to avoid clutter. Return the qbittorrent skill's confirmation.
+
+Ensure the qbittorrent skill is configured and reachable.
+
+### 7. Return Results
 
 Report to user:
-- Downloaded file paths
-- Basic torrent info (title, size)
+- If preset was used: qBittorrent add confirmation + torrent name.
+- If no preset: downloaded file paths and basic torrent info.
 
-Example:
+Example (with preset):
+```
+已添加到 qBittorrent (preset: normal)
+- [PTer][453737].飞驰人生.Pegasus.2019.2160p.WEB-DL.H265.AAC-PTerWEB.mkv.torrent
+qBittorrent: Ok.
+```
+
+Example (without preset):
 ```
 已下载：
 - Xing dai lu lu - Photo Set Collection-LikeArt.torrent (5.33 GB)
   路径: ~/.openclaw/workspace/torrents/Xing dai lu lu.torrent
-```
-
-### 7. Optional: Push to qBittorrent
-
-If user has configured qBittorrent integration and wants to add to download queue, invoke the qbittorrent skill:
-
-```
-Use qbittorrent skill to add torrent file: <filepath>
 ```
 
 ## Error Handling
