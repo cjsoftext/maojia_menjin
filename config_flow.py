@@ -12,7 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import MenjinApiClient
-from .const import CONF_DIVIDE_CODE, CONF_DIVIDE_NAME, CONF_PHONE, DOMAIN
+from .const import CONF_DIVIDE_CODE, CONF_DIVIDE_NAME, CONF_PHONE, DATA_COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,16 +137,18 @@ class MenjinOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             if user_input.get("refresh_devices"):
                 # Trigger device refresh
-                coordinator = self.hass.data[DOMAIN].get(self.config_entry.entry_id)
-                if coordinator:
-                    await coordinator.async_refresh_devices()
-                    return self.async_show_form(
-                        step_id="init",
-                        data_schema=self._get_schema(),
-                        description_placeholders={
-                            "message": "设备列表已刷新"
-                        },
-                    )
+                entry_data = self.hass.data[DOMAIN].get(self.config_entry.entry_id)
+                if entry_data:
+                    coordinator = entry_data.get(DATA_COORDINATOR)
+                    if coordinator:
+                        await coordinator.async_refresh_devices()
+                        return self.async_show_form(
+                            step_id="init",
+                            data_schema=self._get_schema(),
+                            description_placeholders={
+                                "message": "设备列表已刷新"
+                            },
+                        )
 
         return self.async_show_form(
             step_id="init",
