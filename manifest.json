@@ -1,0 +1,11 @@
+{
+  "domain": "maojia_menjin",
+  "name": "茂家门禁",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/custom_components/maojia_menjin",
+  "iot_class": "cloud_polling",
+  "requirements": ["pypinyin"],
+  "version": "1.0.0"
+}

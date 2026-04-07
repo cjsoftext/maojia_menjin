@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "茂家门禁",
+        "description": "请输入您的门禁系统凭据",
+        "data": {
+          "token": "Token",
+          "phone": "手机号"
+        }
+      },
+      "select_org": {
+        "title": "选择小区",
+        "description": "请选择您要添加的小区",
+        "data": {
+          "divide_code": "小区"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到门禁系统，请检查 Token 是否正确",
+      "unknown": "未知错误"
+    },
+    "abort": {
+      "already_configured": "该小区已配置"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "茂家门禁选项",
+        "description": "{message}",
+        "data": {
+          "refresh_devices": "刷新设备列表"
+        }
+      }
+    }
+  }
+}
