@@ -113,8 +113,7 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
         rows = soup.find_all('tr')
 
         for row in rows:
-            # Use recursive=False to only get direct children, avoiding nested table cells
-            cells = row.find_all(['td', 'th'], recursive=False)
+            cells = row.find_all(['td', 'th'])
             if len(cells) < 5:
                 continue
 
@@ -197,27 +196,41 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                 snatched = '0'
                 alive_time = 'N/A'
 
-                # Fixed position extraction based on layout:
-                # [checkbox][cat][title][comments][alive_time][size][seeders][leechers][snatched][uploader]
-                if cell_index + 2 < len(cells):
-                    alive_time = cells[cell_index + 2].get_text(strip=True)
-                if cell_index + 3 < len(cells):
-                    size = cells[cell_index + 3].get_text(strip=True)
-                if cell_index + 4 < len(cells):
-                    seeders = cells[cell_index + 4].get_text(strip=True)
-                if cell_index + 5 < len(cells):
-                    leechers = cells[cell_index + 5].get_text(strip=True)
-                if cell_index + 6 < len(cells):
-                    snatched = cells[cell_index + 6].get_text(strip=True)
+                # Try to find cells with numeric values for seeders/leechers
+                for i, cell in enumerate(cells):
+                    text = cell.get_text(strip=True)
+                    # Look for size pattern (GB, MB, TB)
+                    if re.match(r'^\d+(\.\d+)?\s*[GMKT]B$', text, re.I):
+                        size = text
+                    # Look for alive time pattern (天/时/分 - days/hours/minutes)
+                    elif re.match(r'^\d+\s*[天时分秒](\s*\d+\s*[天时分秒])*$', text):
+                        alive_time = text
+                    # Look for seeders (usually a number, sometimes colored)
+                    elif cell.find('span', class_=re.compile(r'seed|up', re.I)) or re.match(r'^\d+$', text):
+                        if seeders == '0' and text.isdigit():
+                            seeders = text
+                    elif cell.find('span', class_=re.compile(r'leech|down', re.I)):
+                        if leechers == '0':
+                            leechers = text
+
+                # Alternative: try fixed positions if we have enough cells
+                if len(cells) >= cell_index + 5:
+                    # Common layout: [checkbox][cat][title][comments][alive_time][size][seeders][leechers][snatched][uploader]
+                    # Try to extract from fixed positions
+                    for offset in [2, 3, 4]:
+                        if cell_index + offset < len(cells):
+                            text = cells[cell_index + offset].get_text(strip=True)
+                            # Check for size
+                            if size == 'N/A' and re.match(r'^\d+(\.\d+)?\s*[GMKT]B$', text, re.I):
+                                size = text
+                            # Check for alive time (天=day, 时=hour, 分=minute, 秒=second)
+                            if alive_time == 'N/A' and re.match(r'^(\d+[天时分秒\s]*)+$', text):
+                                alive_time = text
 
                 # Extract tags (Free, 国语, 中字, 禁转, etc.)
-                # Limit search to the torrentname table to avoid picking up tags from other rows
                 tags = []
-                torrent_table = title_cell.find('table', class_='torrentname')
-                search_scope = torrent_table if torrent_table else title_cell
-
                 # Look for img alt text which often contains tag info
-                for img in search_scope.find_all('img'):
+                for img in title_cell.find_all('img'):
                     alt = img.get('alt', '')
                     title_attr = img.get('title', '')
                     if alt and alt not in ['', ' ']:
@@ -226,7 +239,7 @@ def search_torrents(cookies: Dict[str, str], keyword: str) -> List[Dict[str, Any
                         tags.append(title_attr)
 
                 # Look for tag links
-                tag_links = search_scope.find_all('a', href=re.compile(r'tag_'))
+                tag_links = title_cell.find_all('a', href=re.compile(r'tag_'))
                 for tag_link in tag_links:
                     tag_text = tag_link.get_text(strip=True)
                     if tag_text and tag_text not in tags:
